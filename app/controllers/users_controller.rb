@@ -28,6 +28,7 @@ class UsersController < ApplicationController
         end
         if @user_detail.errors
           flash["age"] =   @user_detail.errors.full_messages.to_sentence
+          @user.destroy
         end
         redirect_to :action => 'new'
       end
