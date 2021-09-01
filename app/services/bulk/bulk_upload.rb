@@ -6,71 +6,53 @@ module Bulk
 
     def process
       uploaded_file = @file
-      File.open(Rails.root.join('public', 'uploads', uploaded_file.original_filename), 'wb') do |file|
+      File.open(Rails.root.join('public', uploaded_file.original_filename), 'wb') do |file|
         file.write(uploaded_file.read)
       end
 
-      table = CSV.parse(File.read(Rails.root.join('public', 'uploads', uploaded_file.original_filename)), headers: true)
+      table = CSV.parse(File.read(Rails.root.join('public', uploaded_file.original_filename)), headers: true)
       x = 0
       batch_size = 1000
       
       while x < (table.size) 
         users = []
         all_users = []
-        all_user_details = []
-        user_details = []
-        currnet_usernames = []
-        current_emails = []
-        for user in User.all 
-          currnet_usernames.push(user.username)
-          current_emails.push(user.email)
-        end
+        
         (batch_size).times do |i|
-	  email = table.by_row[x]["email"]
-          username = table.by_row[x]["username"]
-          first_name = table.by_row[x]["first_name"]
-          last_name = table.by_row[x]["last_name"]
-          dob = table.by_row[x]["dob"]
-          primary_address = table.by_row[x]["primary_address"]
-          secondary_address = table.by_row[x]["secondary_address"]
-          found_email1 = false
-          found_username1 = false
-          found_emai2 = false
-          found_username2_ = false
-          for user in users 
-            if user["email"] == ActiveRecord::Base.connection.quote(email)
-              found_email1 = true
-            end
-            if user["username"] == ActiveRecord::Base.connection.quote(username)
-              found_username1 = true
-            end
-          end
-          for currnet_username in currnet_usernames 
-            if username == currnet_username
-              found_username2_ = true
-              break;
-            end
-          end
+          country = table.by_row[x][" country"]
+          cpc = table.by_row[x][" inbound_cpc"]  
+          location = table.by_row[x][" location"]
+          employment_type = table.by_row[x][" employment_type"]
+          company_id = table.by_row[x][" company_id"]
+          currency_code = table.by_row[x][" currency_code"]
+          language_code = table.by_row[x][" language_code"]
+          description = table.by_row[x][" description"]
+          source = table.by_row[x][" source"]
+          external_id = table.by_row[x][" external_id"]
+          country_code = table.by_row[x][" country_code"]
+          job_listing_id = table.by_row[x][" job_listing_id"]
+          job_post_link = table.by_row[x][" job_post_link"]
+          title = table.by_row[x][" title"]
 
-          for current_email in current_emails 
-            if current_email == email
-              found_email2 = true
-            end
-          end
-          
-          if !found_email1 and !found_emai2 and !found_username1 and !found_username2_
-            user = { "email" => ActiveRecord::Base.connection.quote(email) , "username" => ActiveRecord::Base.connection.quote(username) }
-            user_detail = { 
-            "first_name" => ActiveRecord::Base.connection.quote(first_name), 
-            "last_name" => ActiveRecord::Base.connection.quote(last_name),
-            "dob" => ActiveRecord::Base.connection.quote(dob),
-            "user_id" => nil,
-            "primary_address" => ActiveRecord::Base.connection.quote(primary_address),
-            "secondary_address" => ActiveRecord::Base.connection.quote(secondary_address) 
-            } 
+
+         
+            user = {"country" => ActiveRecord::Base.connection.quote(country), 
+              "inbound_cpc" => ActiveRecord::Base.connection.quote(cpc),
+              "location" => ActiveRecord::Base.connection.quote(location) ,
+              "employment_type" => ActiveRecord::Base.connection.quote(employment_type) ,
+              "company_id" => ActiveRecord::Base.connection.quote(company_id) ,
+              "currency_code" => ActiveRecord::Base.connection.quote(currency_code) ,
+              "language_code" => ActiveRecord::Base.connection.quote(language_code) ,
+              "description" => ActiveRecord::Base.connection.quote(description) ,
+              "source" => ActiveRecord::Base.connection.quote(source) ,
+              "external_id" => ActiveRecord::Base.connection.quote(external_id) ,
+              "country_code" => ActiveRecord::Base.connection.quote(country_code) ,
+              "job_listing_id" => ActiveRecord::Base.connection.quote(job_listing_id),
+              "job_post_link" => ActiveRecord::Base.connection.quote(job_post_link),
+              "title" => ActiveRecord::Base.connection.quote(title),
+              
+                  }
             users.push(user)
-            all_user_details.push(user_detail)
-          end
           x = x + 1;
           if(x >= table.size) 
             break
@@ -80,45 +62,19 @@ module Bulk
           for user in users
             all_users.push(<<-SQL.chomp)
             (
-              #{user.values.join(',')},
-              NOW(),
-              NOW()
+              #{user.values.join(',')}
             )
             SQL
           end
 
           if(all_users.size != 0)
             sql = <<-SQL.chomp
-            INSERT INTO users (
-              email, username, created_at, updated_at
+            INSERT INTO jobs (
+              country, inbound_cpc, location, employment_type, company_id, currency_code, language_code, description, source, external_id,  country_code, job_listing_id, job_post_link, title
               ) VALUES #{all_users.join(',')}
               SQL
-            user_ids = ActiveRecord::Base.connection.execute(sql+'returning id')
+            ActiveRecord::Base.connection.execute(sql)
           end
-        end
-        temp = 0    
-        for user_detail in all_user_details
-          user_detail["user_id"] = user_ids[temp]["id"]
-          temp = temp + 1;
-        end
-
-        if(all_users.size != 0)
-          for user_detail in all_user_details
-            user_details.push(<<-SQL.chomp)
-            (
-              #{user_detail.values.join(',')},
-              NOW(),
-              NOW()
-            )
-            SQL
-          end
-          sql = <<-SQL.chomp
-            INSERT INTO user_details (
-              first_name , last_name , dob, user_id ,primary_address , secondary_address , created_at, updated_at
-              ) VALUES #{user_details.join(',')}
-            SQL
-
-          ActiveRecord::Base.connection.execute(sql)
         end
       end
     end
