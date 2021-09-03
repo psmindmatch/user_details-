@@ -10,7 +10,7 @@ module Bulk
         file.write(uploaded_file.read)
       end
 
-      doc = File.open(Rails.root.join('public', "jobted_partner_company_medium.xml")) { |f| Nokogiri::XML(f) }
+      doc = File.open(Rails.root.join('public', "jobsangebote_partner_medium.xml")) { |f| Nokogiri::XML(f) }
             x = 0
             sql = ""
             batch_size = 1000
@@ -22,7 +22,7 @@ module Bulk
                 ids << children.css('id').inner_text
             end
 
-      table = CSV.parse(File.read(Rails.root.join('public', uploaded_file.original_filename)), headers: true)
+      table = CSV.parse(File.read(Rails.root.join('public', uploaded_file.original_filename)), headers: true) 
       x = 0
       batch_size = 1000
       all_job_listing_ids = []
@@ -61,6 +61,7 @@ module Bulk
         end
       end
       puts ans
+      puts ans.size
     end
   end
 end
